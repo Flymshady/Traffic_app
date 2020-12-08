@@ -146,7 +146,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean onMarkerClick(final Marker marker) {
-        System.out.println(textResult+"start--------------------------");
 
         if(marker.getTitle().equalsIgnoreCase("Bartoň, směr Vysokov")){
             mId=0;
@@ -167,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mId=4;
         }
 
-        String urlBasic="https://ec608c840b83.ngrok.io/";
+        String urlBasic="https://4eda74757ff8.ngrok.io/";
         String mUrl=urlBasic+"predict/"+mId+"/";
 
         Retrofit retrofit = new Retrofit.Builder().baseUrl(mUrl).addConverterFactory(GsonConverterFactory.create()).build();
@@ -223,9 +222,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }else{
                     marker.setSnippet("Chyba při načítání");
                     marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-                }
-                for(int i=0;i<20;i++) {
-                    System.out.println(textResult+"------------------------------------------------"+i);
                 }
 
             }
