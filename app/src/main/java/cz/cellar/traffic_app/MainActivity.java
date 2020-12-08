@@ -2,8 +2,14 @@ package cz.cellar.traffic_app;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -12,11 +18,30 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+import java.util.List;
 
-    private GoogleMap mMap;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+
+
+
+    GoogleMap mMap;
+    Marker mBarton_vysokov;
+    Marker mPolska;
+    Marker mBarton_centrum;
+    Marker mBarton;
+    Marker mSlavia;
+    Marker mItalie;
+    String textResult;
+    int mId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +57,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setOnMarkerClickListener(this);
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+            @Override
+            public View getInfoWindow(Marker marker) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+
+                Context context = getApplicationContext();
+                LinearLayout info = new LinearLayout(context);
+                info.setOrientation(LinearLayout.VERTICAL);
+
+                TextView title = new TextView(context);
+                title.setTextColor(Color.BLACK);
+                title.setGravity(Gravity.CENTER);
+                title.setTypeface(null, Typeface.BOLD);
+                title.setText(marker.getTitle());
+
+                TextView snippet = new TextView(context);
+                snippet.setTextColor(Color.GRAY);
+                snippet.setText(marker.getSnippet());
+
+                info.addView(title);
+                info.addView(snippet);
+
+                return info;
+            }
+        });
 
         LatLng barton_vysokov = new LatLng(50.40682739619972, 16.15348811129043);
         LatLng barton_centrum = new LatLng(50.40700629102843, 16.15431743366031);
@@ -42,39 +97,117 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng centerPos = new LatLng(50.413239005850215, 16.165829679135452);
         float zoom = (float) 14.2;
 
-        mMap.addMarker(new MarkerOptions()
+        mBarton_vysokov =  mMap.addMarker(new MarkerOptions()
                 .position(barton_vysokov)
+                .title(textResult)
                 .title("Bartoň, směr Vysokov")
+                .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
         );
 
-        mMap.addMarker(new MarkerOptions()
+        mBarton_centrum = mMap.addMarker(new MarkerOptions()
                 .position(barton_centrum)
                 .title("Bartoň, směr centrum")
+                .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
         );
 
-        mMap.addMarker(new MarkerOptions()
+        mBarton = mMap.addMarker(new MarkerOptions()
                 .position(barton)
                 .title("Pražská ul., směr Vysokov")
+                .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
         );
 
-        mMap.addMarker(new MarkerOptions()
+        mSlavia = mMap.addMarker(new MarkerOptions()
                 .position(slavia)
                 .title("Pražská ul, směr Slavie")
+                .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
-        mMap.addMarker(new MarkerOptions()
+        mItalie = mMap.addMarker(new MarkerOptions()
                 .position(italie)
                 .title("Kruhový objezd u Itálie")
+                .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
-        mMap.addMarker(new MarkerOptions()
+        mPolska = mMap.addMarker(new MarkerOptions()
                 .position(polska)
                 .title("Polská ul.")
+                .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
 
          mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(centerPos, zoom));
          mMap.getUiSettings().setZoomControlsEnabled(true);
 
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        if(marker.getTitle().equalsIgnoreCase("Bartoň, směr Vysokov")){ mId=0;}
+        if(marker.getTitle().equalsIgnoreCase("Bartoň, směr centrum")){ mId=1;}
+        if(marker.getTitle().equalsIgnoreCase("Pražská ul., směr Vysokov")){ mId=2;}
+        if(marker.getTitle().equalsIgnoreCase("Pražská ul, směr Slavie")){ mId=3;}
+        if(marker.getTitle().equalsIgnoreCase("Kruhový objezd u Itálie")) { mId=4;}
+        if(marker.getTitle().equalsIgnoreCase("Polská ul.")){ mId=5;}
+
+        else{mId=3;}
+        for(int i=0;i<20;i++) {
+            System.out.println(marker.getTitle());
+        }
+
+
+        String urlBasic="https://6f07dbe55aeb.ngrok.io/";
+        String mUrl=urlBasic+"predict/"+mId+"/";
+
+        Retrofit retrofit = new Retrofit.Builder().baseUrl(mUrl).addConverterFactory(GsonConverterFactory.create()).build();
+        JsonPlaceHolderApi jsonPlaceHolderApi = retrofit.create(JsonPlaceHolderApi.class);
+        Call<List<Post>> call = jsonPlaceHolderApi.getPosts();
+        call.enqueue(new Callback<List<Post>>() {
+            @Override
+            public void onResponse(Call<List<Post>> call, Response<List<Post>> response) {
+                if (!response.isSuccessful()){
+                    textResult = String.valueOf(response.code());
+                }
+
+                List<Post> posts = response.body();
+                if(posts==null){ textResult="Chyba při načítání"; return;}
+                if(posts.isEmpty()){ textResult="Chyba při načítání"; return;}
+
+                for (Post post: posts){
+                    String content = "";
+                    content+=post.getPred()+"\n";
+                    textResult=content;
+
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Post>> call, Throwable t) {
+                textResult=t.getMessage();
+            }
+        });
+
+        if(textResult!=null){
+            if (textResult.contentEquals("traffic")){
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                marker.setSnippet("Dopravní zácpa");
+            }
+            if(textResult.contentEquals("no_traffic")){
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                marker.setSnippet("Bez dopravní zácpy");
+            }
+            if(textResult.contentEquals("error")){
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                marker.setSnippet("Chybí informace o situaci");
+            }
+            else{
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                marker.setSnippet(textResult);
+            }
+        }else{
+            marker.setSnippet("Chyba při načítání");
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+        }
+
+       return false;
     }
 }
