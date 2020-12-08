@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public boolean onMarkerClick(Marker marker) {
+    public boolean onMarkerClick(final Marker marker) {
         System.out.println(textResult+"start--------------------------");
 
         if(marker.getTitle().equalsIgnoreCase("Bartoň, směr Vysokov")){
@@ -167,15 +167,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mId=4;
         }
 
-        String urlBasic="https://171769c029e3.ngrok.io/";
+        String urlBasic="https://ec608c840b83.ngrok.io/";
         String mUrl=urlBasic+"predict/"+mId+"/";
 
         Retrofit retrofit = new Retrofit.Builder().baseUrl(mUrl).addConverterFactory(GsonConverterFactory.create()).build();
         JsonPlaceHolderApi jsonPlaceHolderApi = retrofit.create(JsonPlaceHolderApi.class);
         Call<List<Post>> call = jsonPlaceHolderApi.getPosts();
+
+
         call.enqueue(new Callback<List<Post>>() {
+
             @Override
             public void onResponse(Call<List<Post>> call, Response<List<Post>> response) {
+
 
                 if (!response.isSuccessful()){
                     textResult = String.valueOf(response.code());
@@ -183,11 +187,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 List<Post> posts = response.body();
                 if(posts==null){
-                    textResult=("Chyba při načítání");
+                    textResult=("Chyba při načítání - null ");
                     //return;
                 }
                 if(posts.isEmpty()){
-                    textResult=("Chyba při načítání");
+                    textResult=("Chyba při načítání- empty");
                     //return;
                 }
 
@@ -197,6 +201,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     textResult=content;
 
                 }
+
+                if(textResult!=null){
+
+                    if(textResult.contains("no_traffic")){
+                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                        marker.setSnippet("Bez dopravní zácpy");
+                    }
+                    else if(textResult.contains("error")){
+                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                        marker.setSnippet("Chybí informace o situaci");
+                    }
+                    else if(textResult.contains("traffic") && textResult.length()<=8) {
+                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                        marker.setSnippet("Dopravní zácpa");
+                    }
+                    else{
+                        marker.setSnippet("Nastala chyba při načítání");
+                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                    }
+                }else{
+                    marker.setSnippet("Chyba při načítání");
+                    marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+                }
+                for(int i=0;i<20;i++) {
+                    System.out.println(textResult+"------------------------------------------------"+i);
+                }
+
             }
 
             @Override
@@ -205,31 +236,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        if(textResult!=null){
 
-            if(textResult.contains("no_traffic")){
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-                marker.setSnippet("Bez dopravní zácpy");
-            }
-            else if(textResult.contains("error")){
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-                marker.setSnippet("Chybí informace o situaci");
-            }
-            else if(textResult.contains("traffic") && textResult.length()<=8) {
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-                marker.setSnippet("Dopravní zácpa");
-            }
-            else{
-                marker.setSnippet("Nastala chyba při načítání");
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-            }
-        }else{
-            marker.setSnippet("Chyba při načítání");
-            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
-        }
-        for(int i=0;i<20;i++) {
-            System.out.println(textResult+"------------------------------------------------"+i);
-        }
        return false;
     }
 }
