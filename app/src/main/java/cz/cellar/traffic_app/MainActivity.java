@@ -22,6 +22,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -40,7 +41,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Marker mBarton;
     Marker mSlavia;
     Marker mItalie;
-    String textResult;
+    String textResult="";
+
+
+
     int mId;
 
     @Override
@@ -118,7 +122,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
         );
-
+        mPolska = mMap.addMarker(new MarkerOptions()
+                .position(polska)
+                .title("Polská ul.")
+                .snippet("neaktualizováno")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
         mSlavia = mMap.addMarker(new MarkerOptions()
                 .position(slavia)
                 .title("Pražská ul, směr Slavie")
@@ -129,11 +137,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .title("Kruhový objezd u Itálie")
                 .snippet("neaktualizováno")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
-        mPolska = mMap.addMarker(new MarkerOptions()
-                .position(polska)
-                .title("Polská ul.")
-                .snippet("neaktualizováno")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
+
 
          mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(centerPos, zoom));
          mMap.getUiSettings().setZoomControlsEnabled(true);
@@ -142,20 +146,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        if(marker.getTitle().equalsIgnoreCase("Bartoň, směr Vysokov")){ mId=0;}
-        if(marker.getTitle().equalsIgnoreCase("Bartoň, směr centrum")){ mId=1;}
-        if(marker.getTitle().equalsIgnoreCase("Pražská ul., směr Vysokov")){ mId=2;}
-        if(marker.getTitle().equalsIgnoreCase("Pražská ul, směr Slavie")){ mId=3;}
-        if(marker.getTitle().equalsIgnoreCase("Kruhový objezd u Itálie")) { mId=4;}
-        if(marker.getTitle().equalsIgnoreCase("Polská ul.")){ mId=5;}
+        System.out.println(textResult+"start--------------------------");
 
-        else{mId=3;}
-        for(int i=0;i<20;i++) {
-            System.out.println(marker.getTitle());
+        if(marker.getTitle().equalsIgnoreCase("Bartoň, směr Vysokov")){
+            mId=0;
+        }
+        else if (marker.getTitle().equalsIgnoreCase("Bartoň, směr centrum")){
+            mId=1;
+        }
+        else if(marker.getTitle().equalsIgnoreCase("Pražská ul., směr Vysokov")){
+            mId=2;
+        }
+        else if(marker.getTitle().equalsIgnoreCase("Pražská ul, směr Slavie")){
+            mId=3;
+        }
+        else if(marker.getTitle().equalsIgnoreCase("Polská ul.")){
+            mId=5;
+        }
+        else if(marker.getTitle().equalsIgnoreCase("Kruhový objezd u Itálie")) {
+            mId=4;
         }
 
-
-        String urlBasic="https://6f07dbe55aeb.ngrok.io/";
+        String urlBasic="https://171769c029e3.ngrok.io/";
         String mUrl=urlBasic+"predict/"+mId+"/";
 
         Retrofit retrofit = new Retrofit.Builder().baseUrl(mUrl).addConverterFactory(GsonConverterFactory.create()).build();
@@ -164,13 +176,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         call.enqueue(new Callback<List<Post>>() {
             @Override
             public void onResponse(Call<List<Post>> call, Response<List<Post>> response) {
+
                 if (!response.isSuccessful()){
                     textResult = String.valueOf(response.code());
                 }
 
                 List<Post> posts = response.body();
-                if(posts==null){ textResult="Chyba při načítání"; return;}
-                if(posts.isEmpty()){ textResult="Chyba při načítání"; return;}
+                if(posts==null){
+                    textResult=("Chyba při načítání");
+                    //return;
+                }
+                if(posts.isEmpty()){
+                    textResult=("Chyba při načítání");
+                    //return;
+                }
 
                 for (Post post: posts){
                     String content = "";
@@ -187,27 +206,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         if(textResult!=null){
-            if (textResult.contentEquals("traffic")){
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-                marker.setSnippet("Dopravní zácpa");
-            }
-            if(textResult.contentEquals("no_traffic")){
+
+            if(textResult.contains("no_traffic")){
                 marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                 marker.setSnippet("Bez dopravní zácpy");
             }
-            if(textResult.contentEquals("error")){
+            else if(textResult.contains("error")){
                 marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
                 marker.setSnippet("Chybí informace o situaci");
             }
+            else if(textResult.contains("traffic") && textResult.length()<=8) {
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                marker.setSnippet("Dopravní zácpa");
+            }
             else{
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
-                marker.setSnippet(textResult);
+                marker.setSnippet("Nastala chyba při načítání");
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
             }
         }else{
             marker.setSnippet("Chyba při načítání");
             marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
         }
-
+        for(int i=0;i<20;i++) {
+            System.out.println(textResult+"------------------------------------------------"+i);
+        }
        return false;
     }
 }
